@@ -2,6 +2,7 @@ package com.example.cashcard;
 
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
+import net.minidev.json.JSONArray;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -17,7 +18,7 @@ import static org.springframework.test.annotation.DirtiesContext.*;
 
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@DirtiesContext(classMode = ClassMode.AFTER_EACH_TEST_METHOD)
+//@DirtiesContext(classMode = ClassMode.AFTER_EACH_TEST_METHOD) // this run a clean state for each test method (you shouldn't use it indiscriminately)
 class CashcardApplicationTests {
 	@Autowired
 	TestRestTemplate restTemplate;
@@ -45,6 +46,7 @@ class CashcardApplicationTests {
 	}
 
 	@Test
+	@DirtiesContext
 	void shouldCreateANewCashCard() {
 		CashCard newCashCard = new CashCard(null, 250.00);
 		ResponseEntity<Void> createResponse = restTemplate.postForEntity("/cashcards", newCashCard, Void.class);
@@ -63,5 +65,22 @@ class CashcardApplicationTests {
 
 		assertThat(id).isNotNull();
 		assertThat(amount).isEqualTo(250.00);
+	}
+
+	@Test
+	void shouldReturnAllCashCardsWhenListIsRequested() {
+		ResponseEntity<String> response = restTemplate.getForEntity("/cashcards", String.class);
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+		DocumentContext documentContext = JsonPath.parse(response.getBody());
+		int cashCardCount = documentContext.read("$.length()");
+		assertThat(cashCardCount).isEqualTo(3);
+
+		// Get array of ids from id value in each CashCard Object
+		JSONArray ids = documentContext.read("$..id");
+		assertThat(ids).containsExactlyInAnyOrder(99, 100, 101);
+
+		JSONArray amounts = documentContext.read("$..amount");
+		assertThat(amounts).containsExactlyInAnyOrder(123.45, 1.00, 150.00);
 	}
 }
