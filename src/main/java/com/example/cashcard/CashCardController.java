@@ -24,11 +24,10 @@ public class CashCardController {
 
     @GetMapping("/{requestedId}")
     private ResponseEntity<CashCard> findById(@PathVariable Long requestedId, Principal principal) {
-        Optional<CashCard> cashCardOptional = Optional.ofNullable(cashCardRepository.findByIdAndOwner(requestedId, principal.getName()));
+        Optional<CashCard> cashCardOptional = findCashCard(requestedId, principal);
         return cashCardOptional
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
-
     }
 
     @PostMapping
@@ -51,5 +50,21 @@ public class CashCardController {
                 ));
 
         return ResponseEntity.ok(page.getContent());
+    }
+
+    @PutMapping("/{requestedId}")
+    private ResponseEntity<Void> putCashCard(@PathVariable Long requestedId, @RequestBody CashCard cashCardUpdate, Principal principal) {
+        Optional<CashCard> cashCard = findCashCard(requestedId, principal);
+        if (cashCard.isEmpty()) {
+            return ResponseEntity.notFound().build(); // HTTP 404
+        }
+
+        CashCard updatedCashCard = new CashCard(cashCard.get().id(), cashCardUpdate.amount(), principal.getName());
+        cashCardRepository.save(updatedCashCard);
+        return ResponseEntity.noContent().build(); // HTTP 204
+    }
+
+    private Optional<CashCard> findCashCard(Long requestedId, Principal principal) {
+        return Optional.ofNullable(cashCardRepository.findByIdAndOwner(requestedId, principal.getName()));
     }
 }
