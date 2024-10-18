@@ -67,4 +67,15 @@ public class CashCardController {
     private Optional<CashCard> findCashCard(Long requestedId, Principal principal) {
         return Optional.ofNullable(cashCardRepository.findByIdAndOwner(requestedId, principal.getName()));
     }
+
+    @DeleteMapping("/{id}")
+    private ResponseEntity<Void> deleteCashCard(@PathVariable Long id, Principal principal) {
+        // Enforce ownership in order to proceed
+        if (cashCardRepository.existsByIdAndOwner(id, principal.getName())) {
+            cashCardRepository.deleteById(id);
+            return ResponseEntity.noContent().build();
+        }
+
+        return ResponseEntity.notFound().build();
+    }
 }
